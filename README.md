@@ -9,5 +9,7 @@ and the <code>equals</code> method.
     * The <i>capacity</i> is the number of 
 <i>buckets</i> in the hash table, and the <i>initial capacity</i> is simply the capacity 
 at the time the hash table is created.
-5. the hash table is <i>open</i>: in the case of a "hash collision", a single bucket stores 
+5. The hash table is <i>open</i>: in the case of a "hash collision", a single bucket stores 
 multiple entries, which must be searched sequentially.
+6. The <i>load factor</i> is a measure of how full the hash table is allowed to get before its capacity is automatically increased.
+7. 
