@@ -36,6 +36,7 @@ Class fields:
 * <code>private transient int count</code> - The total number of entries in the hash table.
 * <code>private int threshold</code> - The table is rehashed when its size exceeds this threshold = (int)(capacity * loadFactor).
 * <code>private transient int modCount = 0</code> - The number of times this Hashtable has been structurally modified. Structural modifications are those that change the number of entries in the Hashtable or otherwise modify its internal structure (e.g.,rehash). <p>
+* <code>private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;</code> - The maximum size of array to allocate.<p>
 
 4 Constructors
 * <code>public Hashtable(int initialCapacity, float loadFactor)</code>
@@ -46,9 +47,11 @@ Class fields:
 * <code>public Hashtable(Map<? extends K, ? extends V> t)</code>
 
 Commonly used methods: <p>
-* <code>public synchronized int size() { return count; }</code> - Returns the number of keys in this hashtable.
-* <code>public synchronized boolean isEmpty() { return count == 0; }</code> - Tests if this hashtable maps no keys to values.
-* <code>public synchronized boolean contains(Object value) {
+* <code><b>public synchronized int size() { return count; }</b></code> - Returns the number of keys in this hashtable.
+* <code><b>public synchronized boolean isEmpty() { return count == 0; }</b></code> - Tests if this hashtable maps no keys to values.
+* <b>boolean contains(Object value) - Tests if some key maps into the specified value in this hashtable.</b>
+            
+            public synchronized boolean contains(Object value) {
 
                 if (value == null) {
                     throw new NullPointerException();
@@ -64,13 +67,15 @@ Commonly used methods: <p>
                 }
                 return false;
             }
-* <code>public boolean containsValue(Object value) { return contains(value); }</code> - Returns true if this hashtable maps one or more keys to this value.
-
-
-* <code>Tests if the specified object is a key in this hashtable.
-
-    public synchronized boolean containsKey(Object key) {
-    
+            
+* <b><code>public boolean containsValue(Object value) {
+                   return contains(value);
+               }</code></b>
+            
+* <b>boolean containsKey(Object key) - Tests if the specified object is a key in this hashtable.</b>
+            
+            public synchronized boolean containsKey(Object key) {
+            
                 Entry<?,?> tab[] = table;
                 
                 int hash = key.hashCode();
@@ -78,27 +83,89 @@ Commonly used methods: <p>
                 int index = (hash & 0x7FFFFFFF) % tab.length;
                 
                 for (Entry<?,?> e = tab[index] ; e != null ; e = e.next) {
+                
                     if ((e.hash == hash) && e.key.equals(key)) {
                         return true;
                     }
                 }
+                
                 return false;
             }
-            
-* <code>Returns the value to which the specified key is mapped, or {@code null} if this map contains no mapping for the key.
 
-    public synchronized V get(Object key) {
-    
-                <Entry<?,?> tab[] = table;
+* <b>V get(Object key) - Returns the value to which the specified key is mapped, or <code>null</code> if this map contains no mapping for the key.</b>
+
+            public synchronized V get(Object key) {
+            
+                Entry<?,?> tab[] = table;
                 
                 int hash = key.hashCode();
                 
                 int index = (hash & 0x7FFFFFFF) % tab.length;
                 
                 for (Entry<?,?> e = tab[index] ; e != null ; e = e.next) {
+                
                     if ((e.hash == hash) && e.key.equals(key)) {
                         return (V)e.value;
                     }
                 }
+                
                 return null;
-    }
+            }
+            
+* <b>protected void rehash()</b> - Increases the capacity of and internally reorganizes this hashtable, in order to accommodate and access its entries more efficiently.  This method is called automatically when the number of keys in the hashtable exceeds this hashtable's capacity and load factor. <p>
+
+* <b>private void addEntry(int hash, K key, V value, int index) </b>
+
+            private void addEntry(int hash, K key, V value, int index) {
+            
+                modCount++;
+        
+                Entry<?,?> tab[] = table;
+                
+                if (count >= threshold) {
+                    // Rehash the table if the threshold is exceeded
+                    rehash();
+        
+                    tab = table;
+                    hash = key.hashCode();
+                    index = (hash & 0x7FFFFFFF) % tab.length;
+                }
+        
+                // Creates the new entry.
+                Entry<K,V> e = (Entry<K,V>) tab[index];
+                tab[index] = new Entry<>(hash, key, value, e);
+                count++;
+            }
+            
+* <b>public synchronized V put(K key, V value) - Maps the specified <code>key</code> to the specified <code>value</code> in this hashtable. Neither the key nor the value can be <code>null</code>.</b>
+
+            public synchronized V put(K key, V value) {
+            
+                // Make sure the value is not null
+                if (value == null) {
+                    throw new NullPointerException();
+                }
+        
+                // Makes sure the key is not already in the hashtable.
+                Entry<?,?> tab[] = table;
+                
+                int hash = key.hashCode();
+                
+                int index = (hash & 0x7FFFFFFF) % tab.length;
+                
+                Entry<K,V> entry = (Entry<K,V>)tab[index];
+                
+                for(; entry != null ; entry = entry.next) {
+                
+                    if ((entry.hash == hash) && entry.key.equals(key)) {
+                    
+                        V old = entry.value;
+                        entry.value = value;
+                        return old;
+                    }
+                }
+        
+                addEntry(hash, key, value, index);
+                
+                return null;
+            }
