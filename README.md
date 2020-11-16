@@ -31,7 +31,7 @@ extends Dictionary<K,V><p><p>
 implements Map<K,V>, Cloneable, java.io.Serializable { } 
 </code>
 
-Class fields:
+12. Class fields:
 * <code>private transient Entry<?,?>[] table </code> - The hash table data. It's an Array.
 * <code>private transient int count</code> - The total number of entries in the hash table.
 * <code>private int threshold</code> - The table is rehashed when its size exceeds this threshold = (int)(capacity * loadFactor).
@@ -137,7 +137,7 @@ Commonly used methods: <p>
                 count++;
             }
             
-* <b>public synchronized V put(K key, V value) - Maps the specified <code>key</code> to the specified <code>value</code> in this hashtable. Neither the key nor the value can be <code>null</code>.</b>
+* <b>public synchronized V put(K key, V value) - Maps the specified <code>key</code> to the specified <code>value</code> in this hashtable. Neither the key nor the value can be <code>null</code>. Returns the previous value of the specified key in this hashtable, or <code>null</code> if it did not have one.</b>
 
             public synchronized V put(K key, V value) {
             
@@ -169,3 +169,239 @@ Commonly used methods: <p>
                 
                 return null;
             }
+            
+* <b>public synchronized V remove(Object key) - Removes the key (and its corresponding value) from this hashtable. This method does nothing if the key is not in the hashtable. Return the value to which the key had been mapped in this hashtable, or <code>null</code> if the key did not have a mapping.</b>
+
+            public synchronized V remove(Object key) {
+            
+                Entry<?,?> tab[] = table;
+                
+                int hash = key.hashCode();
+                
+                int index = (hash & 0x7FFFFFFF) % tab.length;
+                
+                Entry<K,V> e = (Entry<K,V>)tab[index];
+                
+                for(Entry<K,V> prev = null ; e != null ; prev = e, e = e.next) {
+                
+                    if ((e.hash == hash) && e.key.equals(key)) {
+                    
+                        modCount++;
+                        
+                        if (prev != null) {
+                            prev.next = e.next;
+                        } else {
+                            tab[index] = e.next;
+                        }
+                        
+                        count--;
+                        
+                        V oldValue = e.value;
+                        
+                        e.value = null;
+                        
+                        return oldValue;
+                    }
+                }
+                
+                return null;
+            }
+            
+* <b>public synchronized void clear() - Clears this hashtable so that it contains no keys.</b>
+
+            public synchronized void clear() {
+            
+                Entry<?,?> tab[] = table;
+                
+                modCount++;
+                
+                for (int index = tab.length; --index >= 0; ){
+                
+                    tab[index] = null;
+                }
+                
+                count = 0;
+            }
+            
+* <b>public synchronized boolean equals(Object o) - Compares the specified Object with this Map for equality, as per the definition in the Map interface. Return true if the specified Object is equal to this Map</b>
+
+            public synchronized boolean equals(Object o) {
+            
+                if (o == this)
+                    return true;
+        
+                if (!(o instanceof Map))
+                    return false;
+                    
+                Map<?,?> t = (Map<?,?>) o;
+                
+                if (t.size() != size())
+                    return false;
+        
+                try {
+                
+                    Iterator<Map.Entry<K,V>> i = entrySet().iterator();
+                    
+                    while (i.hasNext()) {
+                    
+                        Map.Entry<K,V> e = i.next();
+                        
+                        K key = e.getKey();
+                        
+                        V value = e.getValue();
+                        
+                        if (value == null) {
+                        
+                            if (!(t.get(key)==null && t.containsKey(key)))
+                                return false;
+                                
+                        } else {
+                        
+                            if (!value.equals(t.get(key)))
+                                return false;
+                        }
+                        
+                    }
+                } catch (ClassCastException unused)   {
+                    return false;
+                } catch (NullPointerException unused) {
+                    return false;
+                }
+        
+                return true;
+            }
+            
+* <b>public synchronized int hashCode() - Returns the hash code value for this Map as per the definition in the Map interface.</b>
+
+            public synchronized int hashCode() {
+        
+                int h = 0;
+                
+                if (count == 0 || loadFactor < 0)
+                    return h;  // Returns zero
+        
+                loadFactor = -loadFactor;  // Mark hashCode computation in progress
+                
+                Entry<?,?>[] tab = table;
+                
+                for (Entry<?,?> entry : tab) {
+                
+                    while (entry != null) {
+                    
+                        h += entry.hashCode();
+                        entry = entry.next;
+                        
+                    }
+                }
+        
+                loadFactor = -loadFactor;  // Mark hashCode computation complete
+        
+                return h;
+            }
+
+Inner Classes that stores the data:
+
+* <b>private class KeySet extends AbstractSet<K></b>
+
+            private class KeySet extends AbstractSet<K> {
+            
+                public Iterator<K> iterator() {
+                    return getIterator(KEYS);
+                }
+                
+                public int size() {
+                    return count;
+                }
+                
+                public boolean contains(Object o) {
+                    return containsKey(o);
+                }
+                
+                public boolean remove(Object o) {
+                    return Hashtable.this.remove(o) != null;
+                }
+                
+                public void clear() {
+                    Hashtable.this.clear();
+                }
+                
+            }
+            
+* <b>private class EntrySet extends AbstractSet<Map.Entry<K,V>> </b>
+
+            private class EntrySet extends AbstractSet<Map.Entry<K,V>> {
+            
+                    public Iterator<Map.Entry<K,V>> iterator() {
+                        return getIterator(ENTRIES);
+                    }
+            
+                    public boolean add(Map.Entry<K,V> o) {
+                        return super.add(o);
+                    }
+            
+                    public boolean contains(Object o) {
+                    
+                        if (!(o instanceof Map.Entry))
+                            return false;
+                            
+                        Map.Entry<?,?> entry = (Map.Entry<?,?>)o;
+                        
+                        Object key = entry.getKey();
+                        
+                        Entry<?,?>[] tab = table;
+                        
+                        int hash = key.hashCode();
+                        
+                        int index = (hash & 0x7FFFFFFF) % tab.length;
+            
+                        for (Entry<?,?> e = tab[index]; e != null; e = e.next)
+                            if (e.hash==hash && e.equals(entry))
+                                return true;
+                                
+                        return false;
+                    }
+            
+                    public boolean remove(Object o) {
+                    
+                        if (!(o instanceof Map.Entry))
+                            return false;
+                            
+                        Map.Entry<?,?> entry = (Map.Entry<?,?>) o;
+                        
+                        Object key = entry.getKey();
+                        
+                        Entry<?,?>[] tab = table;
+                        
+                        int hash = key.hashCode();
+                        
+                        int index = (hash & 0x7FFFFFFF) % tab.length;
+            
+                        Entry<K,V> e = (Entry<K,V>)tab[index];
+                        
+                        for(Entry<K,V> prev = null; e != null; prev = e, e = e.next) {
+                        
+                            if (e.hash==hash && e.equals(entry)) {
+                            
+                                modCount++;
+                                
+                                if (prev != null)
+                                    prev.next = e.next;
+                                else
+                                    tab[index] = e.next;
+            
+                                count--;
+                                e.value = null;
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+            
+                    public int size() {
+                        return count;
+                    }
+            
+                    public void clear() {
+                        Hashtable.this.clear();
+                    }
+                }
