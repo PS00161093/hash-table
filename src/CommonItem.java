@@ -23,7 +23,6 @@ public class CommonItem {
                 break;
             }
         }
-
         return commonItem;
     }
 
