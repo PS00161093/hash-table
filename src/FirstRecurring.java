@@ -4,7 +4,7 @@ public class FirstRecurring {
 
     public static void main(String[] args) {
 
-        int[] array = {3, 4, 5, 2, 3, 4};
+        int[] array = {2, 5, 5, 2, 3};
 
         System.out.println(getFirstRecurringItem(array));
     }
@@ -17,6 +17,7 @@ public class FirstRecurring {
         for (int item : array) {
             if (hashtable.containsKey(item)) {
                 duplicate = item;
+                break;
             } else {
                 hashtable.put(item, 1);
             }
